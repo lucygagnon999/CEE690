@@ -21,9 +21,9 @@ There are no required textbooks.
 
 ## Grades and workload
 The course grade will be based on:
-* Homework: 30%
-* Project I: 35%
-* Project II: 35%
+* Homework: 20%
+* Project I: 40%
+* Project II: 40%
 
 ### Homework
 TBD
