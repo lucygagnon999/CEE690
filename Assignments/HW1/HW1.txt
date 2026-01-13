@@ -1,0 +1,4 @@
+0. Make a Github repository for the course 
+1. Install miniconda and create your own environment that has numba, rasterio, matplotlib, scikit-learn. Save the environment configuration to a .yml file and submit that file. 
+1. Create and upload a custom vimrc. It needs to have 5 features that you added to it. Add comments in the vimrc describe those unique features.
+2. Create and upload a custom bashrc. It needs to have 5 features that you added to it. Add comments in the bashrc describe those unique features.

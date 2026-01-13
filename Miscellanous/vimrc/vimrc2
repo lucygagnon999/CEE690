@@ -1,0 +1,70 @@
+" ==========================================
+" 1. PLUGINS
+" ==========================================
+call plug#begin('~/.vim/plugged')
+
+" Aesthetics & UI
+Plug 'joshdick/onedark.vim'              " Professional color scheme
+Plug 'itchyny/lightline.vim'             " Lightweight status bar
+Plug 'preservim/nerdtree'                " File explorer sidebar
+Plug 'ryanoasis/vim-devicons'            " Icons for file types
+
+" Navigation & Search
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'                  " Blazing fast fuzzy finder
+Plug 'christoomey/vim-tmux-navigator'    " Seamless Vim/Tmux navigation
+
+" Coding Intelligence
+Plug 'neoclide/coc.nvim', {'branch': 'release'} " LSP support (IntelliSense)
+Plug 'tpope/vim-commentary'              " Shortcut to comment code
+Plug 'tpope/vim-fugitive'                " The best Git wrapper
+Plug 'psf/black', { 'tag': 'stable' }    " Python formatter
+
+call plug#end()
+
+" ==========================================
+" 2. CORE SETTINGS
+" ==========================================
+set nocompatible
+filetype plugin indent on
+syntax on
+set termguicolors            " Enable 24-bit RGB colors
+colorscheme onedark
+
+set number relativenumber    " Hybrid line numbers
+set hidden
+set mouse=a                  " Enable mouse support for scrolling/resizing
+set clipboard=unnamedplus    " Use system clipboard
+set completeopt=noinsert,menuone,noselect " Better completion menu
+
+" ==========================================
+" 3. KEY MAPPINGS (The 'Pro' Workflow)
+" ==========================================
+let mapleader = "\<Space>"
+
+" Fast Search: Open FZF file finder with Space+f
+nnoremap <Leader>f :Files<CR>
+
+" Toggle File Tree with Space+b
+nnoremap <Leader>b :NERDTreeToggle<CR>
+
+" CoC (IntelliSense) Navigation
+" Use K to show documentation in a preview window
+nnoremap <silent> K :call ShowDocumentation()<CR>
+
+function! ShowDocumentation()
+  if (index(['vim','help'], &filetype) >= 0)
+    execute 'h '.expand('<cword>')
+  else
+    call CocAction('doHover')
+  endif
+endfunction
+
+" ==========================================
+" 4. AUTO-COMMANDS
+" ==========================================
+" Automatically source the vimrc on save
+autocmd! BufWritePost .vimrc source %
+
+" Python specific: Run 'Black' formatter on save
+autocmd BufWritePre *.py execute ':Black'
