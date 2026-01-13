@@ -1,0 +1,57 @@
+Vim Script
+" --- Basic Improvements ---
+set nocompatible
+filetype plugin indent on    " Load plugins for specific file types
+syntax on
+set number
+set relativenumber          " Show line numbers relative to cursor (great for jumping)
+set cursorline
+set title                   " Set the terminal window title to the filename
+
+" --- The Leader Key ---
+" Map the leader key to 'space' (much easier to reach than backslash)
+let mapleader = " "
+
+" --- Search & UI ---
+set incsearch
+set hlsearch
+set ignorecase
+set smartcase
+set showmatch               " Highlight matching brackets
+set laststatus=2            " Always show the status line
+
+" --- Performance & Undo ---
+set hidden                  " Allow switching buffers without saving
+set nobackup                " Don't create annoying backup files
+set nowritebackup
+set noswapfile              " Stop creating .swp files
+set undofile                " Save undo history to a file
+set undodir=~/.vim/undodir  " Where to store that history
+
+" --- Navigation & Splits ---
+" Use Ctrl + hjkl to move between split windows
+nnoremap <C-h> <C-w>h
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-l> <C-w>l
+
+" Open new splits to the right and bottom (more natural)
+set splitbelow
+set splitright
+
+" --- Coding & Tabs ---
+set expandtab
+set shiftwidth=4
+set softtabstop=4
+set tabstop=4
+set autoindent
+
+" --- Custom Shortcuts (Leader Mappings) ---
+" Quickly clear search highlighting with <Leader>h
+nnoremap <Leader>h :nohlsearch<CR>
+
+" Toggle line numbers with <Leader>n
+nnoremap <Leader>n :set number!<CR>
+
+" Strip trailing whitespace on save (crucial for clean code)
+autocmd BufWritePre * %s/\s\+$//e

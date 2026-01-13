@@ -1,0 +1,22 @@
+" --- General Settings ---
+set nocompatible            " Use Vim defaults instead of old Vi behavior
+syntax on                   " Enable color highlighting for code
+set number                  " Show line numbers on the left
+set cursorline              " Highlight the current line your cursor is on
+set showcmd                 " Show the command you are typing in the bottom right
+
+" --- Search Settings ---
+set incsearch               " Highlight matches as you type your search
+set hlsearch                " Keep matches highlighted after you hit Enter
+set ignorecase              " Ignore case when searching...
+set smartcase               " ...unless you use a capital letter
+
+" --- Indentation & Tabs ---
+set autoindent              " Copy indent from the previous line
+set expandtab               " Use spaces instead of actual tab characters
+set tabstop=4               " A 'tab' looks like 4 spaces
+set shiftwidth=4            " Number of spaces for auto-indenting
+
+" --- Behavior ---
+set backspace=indent,eol,start  " Make backspace work like a 'normal' editor
+set hidden                  " Switch buffers without having to save first
