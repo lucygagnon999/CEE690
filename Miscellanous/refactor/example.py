@@ -3,77 +3,80 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load dataset
-d = nc.Dataset('era_interim_monthly_197901_201512_upscaled_annual.nc','r')
-r = d.variables['t2m'][:]
+file_pointer_input = nc.Dataset('era_interim_monthly_197901_201512_upscaled_annual.nc','r')
+t2m_data = file_pointer_input.variables['t2m'][:]
 
 # Configuration variables
-a = 5
-b = 50
-c = 10
-d = 100
-e = 0
-f = 10
+LAT_MIN = 5
+LAT_MAX = 50
+LON_MIN = 10
+LON_MAX = 100
+TIME_MIN = 0
+TIME_MAX = 10
 
-A, B = [], []
+temporal_spatial_mean, temporal_spatial_variance = [], []
 
 # Calculate temporally varying spatial mean
-for t in range(len(r)): 
-    if ((t < e) | (t >= f)):
+for t in range(len(t2m_data)): 
+    if ((t < TIME_MIN) | (t >= TIME_MAX)):
         continue
     
-    count = 0
-    val = 0
+    pixel_count = 0
+    total_t2m = 0
 
-    for y in range(len(r[0])):
-        if ((y < a) | (y >= b)):
+    for y in range(len(t2m_data[0])):
+        if ((y < LAT_MIN) | (y >= LAT_MAX)):
             continue
 
-        for x in range(len(r[0][0])):
-            if ((x < c) | (x >= d)):
+        for x in range(len(t2m_data[0][0])):
+            if ((x < LON_MIN) | (x >= LON_MAX)):
                 continue
             
-            count = count + 1
-            val = val + r[t][y][x]
+            pixel_count = pixel_count + 1
+            total_t2m = total_t2m + t2m_data[t][y][x]
 
-    A.append(val / count)
+    temporal_spatial_mean.append(total_t2m / pixel_count)
 
 # Calculate temporally varying spatial standard deviation
-for t in range(len(r)):
-    if ((t < e) | (t >= f)):
+for t in range(len(t2m_data)):
+    if ((t < TIME_MIN) | (t >= TIME_MAX)):
         continue
 
-    count = 0
-    val = 0
+    pixel_count = 0
+    diff_squared_sum = 0
 
-    for y in range(len(r[0])):
-        if ((y < a) | (y >= b)):
+    for y in range(len(t2m_data[0])):
+        if ((y < LAT_MIN) | (y >= LAT_MAX)):
             continue
 
-        for x in range(len(r[0][0])):
-            if ((x < c) | (x >= d)):
+        for x in range(len(t2m_data[0][0])):
+            if ((x < LON_MIN) | (x >= LON_MAX)):
                 continue
 
-            count = count + 1
-            val = val + (r[t][y][x] - A[t - e])**2
+            pixel_count = pixel_count + 1
+            diff = t2m_data[t][y][x] - temporal_spatial_mean[t - TIME_MIN]
+            diff_squared_sum = diff_squared_sum + (diff)
 
-    B.append(val / count)
+    temporal_spatial_variance.append(diff_squared_sum / pixel_count)
 
-A = np.array(A)
-B = np.array(B)
+#Convert lists to arrays
+temporal_spatial_mean = np.array(temporal_spatial_mean)
+temporal_spatial_variance = np.array(temporal_spatial_variance)
 
 #Visualize the data
-plt.plot(A)
-plt.plot(B)
+plt.plot(temporal_spatial_mean)
+plt.plot(temporal_spatial_variance)
 plt.show()
 
 #Output the data to netcdf
-o = nc.Dataset('out.nc','w')
-o.createDimension('t',10)
+file_pointer_output = nc.Dataset('out.nc','w')
+file_pointer_output.createDimension('t',10)
 
-v = o.createVariable('B','f4',('t',))
-v[:] = A
+var_v1 = file_pointer_output.createVariable('temporal_spatial_mean','f4',('t',))
+var_v1[:] = temporal_spatial_mean
 
-v = o.createVariable('A','f4',('t',))
-v[:] = B
+var_v2 = file_pointer_output.createVariable('temporal_spatial_variance','f4',('t',))
+var_v2[:] = temporal_spatial_variance
 
-o.close()
+file_pointer_output.close()
+file_pointer_input.close()
