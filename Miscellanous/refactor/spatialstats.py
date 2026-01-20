@@ -3,6 +3,7 @@ This script provides some basic spatial stats to compute on
 some input data and spatial and temporal coordinates.
 """
 import argparse
+import json
 import netCDF4 as nc
 import numpy as np
 import matplotlib
@@ -111,40 +112,37 @@ def main():
     be accessed without running this.
     """
 
-    # Gather arguments from the terminal
-    args = get_args()
+    # Gather arguments from the terminal and convert to dictionary
+    config = vars(get_args())
 
-    # Configuration variables
-    INPUT_FILE = args.input_file
-    OUTPUT_FILE = args.output_file
-    PLOT_FILE = args.plot_file
-    VAR_NAME = args.var_name
-    LAT_MIN = args.lat_min
-    LAT_MAX = args.lat_max
-    LON_MIN = args.lon_min
-    LON_MAX = args.lon_max
-    TIME_MIN = args.time_min
-    TIME_MAX = args.time_max
+    # Override with JSON info if present
+    if config.get('JSON_FILE'):
+        with open(config['JSON_FILE'], 'r') as f:
+            json_config = json.load(f)
+            # This one line replaces all the manual overwriting
+            config.update(json_config)
 
     # Load dataset
     print("Loading the dataset")
-    t2m_data = load_dataset(INPUT_FILE,VAR_NAME)
+    t2m_data = load_dataset(config['INPUT_FILE'],config['VAR_NAME'])
 
     # Compute temporal series of spatial mean and spatial standard deviation
     print("Computing the statistics")
-    temporal_spatial_mean = calculate_spatial_mean(t2m_data,TIME_MIN,TIME_MAX,
-                                                   LAT_MIN,LAT_MAX,LON_MIN,LON_MAX)
-    temporal_spatial_variance = calculate_spatial_variance(t2m_data,TIME_MIN,TIME_MAX,
-                                                           LAT_MIN,LAT_MAX,LON_MIN,LON_MAX,
-                                                           temporal_spatial_mean)
+    temporal_spatial_mean = calculate_spatial_mean(t2m_data,config['TIME_MIN'],config['TIME_MAX'],
+                                                   config['LAT_MIN'],config['LAT_MAX'],
+                                                   config['LON_MIN'],config['LON_MAX'])
+    temporal_spatial_variance = calculate_spatial_variance(t2m_data,config['TIME_MIN'],
+                                                           config['TIME_MAX'],config['LAT_MIN'],
+                                                           config['LAT_MAX'],config['LON_MIN'],
+                                                           config['LON_MAX'],temporal_spatial_mean)
 
     #Visualize the data
     print("Visualizing the data")
-    visualize_data(temporal_spatial_mean,temporal_spatial_variance,PLOT_FILE)
+    visualize_data(temporal_spatial_mean,temporal_spatial_variance,config['PLOT_FILE'])
 
     #Output the data to netcdf
     print("Saving the computed statistics to netcdf")
-    output_data_to_netcdf(OUTPUT_FILE,temporal_spatial_mean,temporal_spatial_variance)
+    output_data_to_netcdf(config['OUTPUT_FILE'],temporal_spatial_mean,temporal_spatial_variance)
 
     return
 
@@ -155,22 +153,25 @@ def get_args():
     )
     
     # Input/Output paths
-    parser.add_argument('--input_file', type=str, default='era_interim_monthly_197901_201512_upscaled_annual.nc', 
+    parser.add_argument('--INPUT_FILE', type=str, default='era_interim_monthly_197901_201512_upscaled_annual.nc', 
                         help='Path to the input NetCDF file')
-    parser.add_argument('--output_file', type=str, default='out.nc', 
+    parser.add_argument('--OUTPUT_FILE', type=str, default='out.nc', 
                         help='Name of the output NetCDF file')
-    parser.add_argument('--plot_file', type=str, default='plot.png', 
+    parser.add_argument('--PLOT_FILE', type=str, default='plot.png', 
                         help='Name of the output diagnostic plot')
-    parser.add_argument('--var_name', type=str, default='t2m', 
+    parser.add_argument('--VAR_NAME', type=str, default='t2m', 
                         help='The variable name to extract from the NetCDF')
     
     # Bounding Box Arguments
-    parser.add_argument('--lat_min', type=int, default=5)
-    parser.add_argument('--lat_max', type=int, default=50)
-    parser.add_argument('--lon_min', type=int, default=10)
-    parser.add_argument('--lon_max', type=int, default=100)
-    parser.add_argument('--time_min', type=int, default=0)
-    parser.add_argument('--time_max', type=int, default=10)
+    parser.add_argument('--LAT_MIN', type=int, default=5)
+    parser.add_argument('--LAT_MAX', type=int, default=50)
+    parser.add_argument('--LON_MIN', type=int, default=10)
+    parser.add_argument('--LON_MAX', type=int, default=100)
+    parser.add_argument('--TIME_MIN', type=int, default=0)
+    parser.add_argument('--TIME_MAX', type=int, default=10)
+
+    # Optional JSON config file path
+    parser.add_argument('--JSON_FILE', type=str, default=None)
     
     return parser.parse_args()
 
