@@ -11,25 +11,25 @@ matplotlib.use('Agg') # Force Matplotlib to not use any X-Windows backend
 import matplotlib.pyplot as plt
 
 
-def calculate_spatial_mean(data,time_min,time_max,lat_min,lat_max,lon_min,lon_max):
+def calculate_spatial_mean(data, config):
 
     # Define the final variable as a list
     temporal_spatial_mean = []
 
     # Calculate temporally varying spatial mean
     for t in range(data.shape[0]): 
-        if ((t < time_min) | (t >= time_max)):
+        if ((t < config['TIME_MIN']) | (t >= config['TIME_MAX'])):
             continue
         
         pixel_count = 0
         total_data = 0
 
         for y in range(data.shape[1]):
-            if ((y < lat_min) | (y >= lat_max)):
+            if ((y < config['LAT_MIN']) | (y >= config['LAT_MAX'])):
                 continue
 
             for x in range(data.shape[2]):
-                if ((x < lon_min) | (x >= lon_max)):
+                if ((x < config['LON_MIN']) | (x >= config['LON_MAX'])):
                     continue
                 
                 pixel_count = pixel_count + 1
@@ -39,59 +39,59 @@ def calculate_spatial_mean(data,time_min,time_max,lat_min,lat_max,lon_min,lon_ma
 
     return np.array(temporal_spatial_mean)
 
-def calculate_spatial_variance(data,time_min,time_max,lat_min,lat_max,lon_min,lon_max,temporal_spatial_mean):
+def calculate_spatial_variance(data, config, temporal_spatial_mean):
 
     # Define the final variable as a list
     temporal_spatial_variance = []
 
     # Calculate temporally varying spatial mean
     for t in range(data.shape[0]): 
-        if ((t < time_min) | (t >= time_max)):
+        if ((t < config['TIME_MIN']) | (t >= config['TIME_MAX'])):
             continue
         
         pixel_count = 0
         diff_squared_sum = 0
 
         for y in range(data.shape[1]):
-            if ((y < lat_min) | (y >= lat_max)):
+            if ((y < config['LAT_MIN']) | (y >= config['LAT_MAX'])):
                 continue
 
             for x in range(data.shape[2]):
-                if ((x < lon_min) | (x >= lon_max)):
+                if ((x < config['LON_MIN']) | (x >= config['LON_MAX'])):
                     continue
                 
                 pixel_count = pixel_count + 1
-                diff =  data[t][y][x] - temporal_spatial_mean[t - time_min]
+                diff =  data[t][y][x] - temporal_spatial_mean[t - config['TIME_MIN']]
                 diff_squared_sum = diff_squared_sum + (diff)
 
         temporal_spatial_variance.append(diff_squared_sum / pixel_count)
 
     return np.array(temporal_spatial_variance)
 
-def load_dataset(input_file,var_name):
+def load_dataset(config):
 
     # Load dataset from netcdf file
-    file_pointer_input = nc.Dataset(input_file,'r') 
-    t2m_data = file_pointer_input.variables[var_name][:]
+    file_pointer_input = nc.Dataset(config['INPUT_FILE'],'r') 
+    t2m_data = file_pointer_input.variables[config['VAR_NAME']][:]
     file_pointer_input.close()
 
     return t2m_data
 
-def visualize_data(temporal_spatial_mean,temporal_spatial_variance,plot_file):
+def visualize_data(temporal_spatial_mean, temporal_spatial_variance, config):
 
     # Plot and save the time series
     plt.plot(temporal_spatial_mean, label="Mean")
     plt.plot(temporal_spatial_variance, label="Variance")
     plt.legend()
-    plt.savefig(plot_file)  # Saves directly to disk
+    plt.savefig(config['PLOT_FILE'])  # Saves directly to disk
     plt.close()
 
     return
 
-def output_data_to_netcdf(output_file,temporal_spatial_mean,temporal_spatial_variance):
+def output_data_to_netcdf(output_file, temporal_spatial_mean, temporal_spatial_variance):
 
     # Output the data to a netcdf file
-    file_pointer_output = nc.Dataset('out.nc','w')
+    file_pointer_output = nc.Dataset(output_file,'w')
     file_pointer_output.createDimension('t',temporal_spatial_mean.shape[0])
 
     var_v1 = file_pointer_output.createVariable('temporal_spatial_mean','f4',('t',))
@@ -115,7 +115,7 @@ def main():
     # Gather arguments from the terminal and convert to dictionary
     config = vars(get_args())
 
-    # Override with JSON info if present
+    # Override with json info if present
     if config.get('JSON_FILE'):
         with open(config['JSON_FILE'], 'r') as f:
             json_config = json.load(f)
@@ -124,25 +124,20 @@ def main():
 
     # Load dataset
     print("Loading the dataset")
-    t2m_data = load_dataset(config['INPUT_FILE'],config['VAR_NAME'])
+    t2m_data = load_dataset(config)
 
     # Compute temporal series of spatial mean and spatial standard deviation
     print("Computing the statistics")
-    temporal_spatial_mean = calculate_spatial_mean(t2m_data,config['TIME_MIN'],config['TIME_MAX'],
-                                                   config['LAT_MIN'],config['LAT_MAX'],
-                                                   config['LON_MIN'],config['LON_MAX'])
-    temporal_spatial_variance = calculate_spatial_variance(t2m_data,config['TIME_MIN'],
-                                                           config['TIME_MAX'],config['LAT_MIN'],
-                                                           config['LAT_MAX'],config['LON_MIN'],
-                                                           config['LON_MAX'],temporal_spatial_mean)
+    temporal_spatial_mean = calculate_spatial_mean(t2m_data, config)
+    temporal_spatial_variance = calculate_spatial_variance(t2m_data, config, temporal_spatial_mean)
 
     #Visualize the data
     print("Visualizing the data")
-    visualize_data(temporal_spatial_mean,temporal_spatial_variance,config['PLOT_FILE'])
+    visualize_data(temporal_spatial_mean, temporal_spatial_variance, config)
 
     #Output the data to netcdf
     print("Saving the computed statistics to netcdf")
-    output_data_to_netcdf(config['OUTPUT_FILE'],temporal_spatial_mean,temporal_spatial_variance)
+    output_data_to_netcdf(config['OUTPUT_FILE'], temporal_spatial_mean, temporal_spatial_variance)
 
     return
 
