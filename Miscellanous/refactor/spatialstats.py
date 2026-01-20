@@ -1,6 +1,6 @@
 """
-This script provides some basic spatial stats to compute on
-some input data and spatial and temporal coordinates.
+This script provides an Object-Oriented approach to computing spatial stats
+on NetCDF input data across spatial and temporal coordinates.
 """
 import argparse
 import json
@@ -9,171 +9,123 @@ import numpy as np
 import matplotlib
 import os
 import sys
-matplotlib.use('Agg') # Force Matplotlib to not use any X-Windows backend
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 
-def calculate_spatial_mean(data, config):
-    """
-    Computes spatial mean using NumPy slicing (Vectorization).
-    """
-    # 1. Define the time range
-    t_start, t_end = config['TIME_MIN'], config['TIME_MAX']
-    
-    # 2. Extract the 3D 'cube' of interest all at once
-    # Syntax: data[time_slice, lat_slice, lon_slice]
-    subset = data[t_start:t_end, 
-                  config['LAT_MIN']:config['LAT_MAX'], 
-                  config['LON_MIN']:config['LON_MAX']]
+class SpatialAnalyzer:
+    def __init__(self, config):
+        """
+        Initializes the analyzer with configuration and loads the dataset.
+        In OOP, __init__ is the 'constructor' that sets up the object's state.
+        """
+        self.config = config
+        self.data = self._load_dataset()
+        self.means = None
+        self.variances = None
 
-    # 3. Collapse the spatial dimensions (axis 1 and 2)
-    # This calculates the mean across Lat and Lon for every time step
-    temporal_spatial_mean = np.mean(subset, axis=(1, 2))
-
-    return temporal_spatial_mean
-
-def calculate_spatial_variance(data, config, temporal_spatial_mean):
-    """
-    Computes spatial variance using NumPy broadcasting.
-    """
-    t_start, t_end = config['TIME_MIN'], config['TIME_MAX']
-    
-    subset = data[t_start:t_end, 
-                  config['LAT_MIN']:config['LAT_MAX'], 
-                  config['LON_MIN']:config['LON_MAX']]
-
-    # NumPy 'Broadcasting' automatically aligns the mean with the subset
-    # for a mathematical subtraction without a single loop.
-    # We calculate the variance across the spatial axes (1 and 2)
-    temporal_spatial_variance = np.var(subset, axis=(1, 2))
-
-    return temporal_spatial_variance
-
-def load_dataset(config):
-
-    # Check if file exists
-    if not os.path.exists(config['INPUT_FILE']):
-        print(f"Error: The file {config['INPUT_FILE']} does not exist.")
-        sys.exit(1)
-
-    try:
-        # Load dataset from netcdf file
-        file_pointer_input = nc.Dataset(config['INPUT_FILE'],'r') 
-        
-        # Check if variable exists in file
-        if config['VAR_NAME'] not in file_pointer_input.variables:
-            print(f"Error: Variable '{config['VAR_NAME']}' not found in {config['INPUT_FILE']}.")
-            file_pointer_input.close()
+    def _load_dataset(self):
+        """Internal helper to load and validate data."""
+        if not os.path.exists(self.config['INPUT_FILE']):
+            print(f"Error: The file {self.config['INPUT_FILE']} does not exist.")
             sys.exit(1)
 
-        t2m_data = file_pointer_input.variables[config['VAR_NAME']][:]
-        file_pointer_input.close()
-        return t2m_data
-
-    except Exception as e:
-        print(f"An unexpected error occurred while loading the dataset: {e}")
-        sys.exit(1)
-
-def visualize_data(temporal_spatial_mean, temporal_spatial_variance, config):
-
-    try:
-        # Plot and save the time series
-        plt.plot(temporal_spatial_mean, label="Mean")
-        plt.plot(temporal_spatial_variance, label="Variance")
-        plt.legend()
-        plt.savefig(config['PLOT_FILE'])  # Saves directly to disk
-        plt.close()
-    except Exception as e:
-        print(f"Error during visualization: {e}")
-
-    return
-
-def output_data_to_netcdf(output_file, temporal_spatial_mean, temporal_spatial_variance):
-
-    try:
-        # Output the data to a netcdf file
-        file_pointer_output = nc.Dataset(output_file,'w')
-        file_pointer_output.createDimension('t',temporal_spatial_mean.shape[0])
-
-        var_v1 = file_pointer_output.createVariable('temporal_spatial_mean','f4',('t',))
-        var_v1[:] = temporal_spatial_mean
-
-        var_v2 = file_pointer_output.createVariable('temporal_spatial_variance','f4',('t',))
-        var_v2[:] = temporal_spatial_variance
-
-        file_pointer_output.close()
-    except Exception as e:
-        print(f"Error while saving NetCDF: {e}")
-
-    return
-
-def main():
-
-    """
-    The director of the orchestra. When this function is called, it runs the defined
-    sequence of functions. However, it also ensures that other parts of the script can 
-    be accessed without running this.
-    """
-
-    # Gather arguments from the terminal and convert to dictionary
-    config = vars(get_args())
-
-    # Override with json info if present
-    if config.get('JSON_FILE'):
         try:
-            with open(config['JSON_FILE'], 'r') as f:
-                json_config = json.load(f)
-                config.update(json_config)
+            file_pointer = nc.Dataset(self.config['INPUT_FILE'], 'r') 
+            if self.config['VAR_NAME'] not in file_pointer.variables:
+                print(f"Error: Variable '{self.config['VAR_NAME']}' not found.")
+                file_pointer.close()
+                sys.exit(1)
+
+            data = file_pointer.variables[self.config['VAR_NAME']][:]
+            file_pointer.close()
+            return data
         except Exception as e:
-            print(f"Error loading JSON config: {e}")
+            print(f"An unexpected error occurred while loading: {e}")
             sys.exit(1)
 
-    # Load dataset
-    print("Loading the dataset")
-    t2m_data = load_dataset(config)
+    def run_analysis(self):
+        """Orchestrates the computation of statistics."""
+        print("Computing the statistics")
+        t_start, t_end = self.config['TIME_MIN'], self.config['TIME_MAX']
+        
+        # Slicing the subset once to be used by both mean and variance
+        subset = self.data[t_start:t_end, 
+                           self.config['LAT_MIN']:self.config['LAT_MAX'], 
+                           self.config['LON_MIN']:self.config['LON_MAX']]
 
-    # Compute temporal series of spatial mean and spatial standard deviation
-    print("Computing the statistics")
-    temporal_spatial_mean = calculate_spatial_mean(t2m_data, config)
-    temporal_spatial_variance = calculate_spatial_variance(t2m_data, config, temporal_spatial_mean)
+        self.means = np.mean(subset, axis=(1, 2))
+        self.variances = np.var(subset, axis=(1, 2))
 
-    #Visualize the data
-    print("Visualizing the data")
-    visualize_data(temporal_spatial_mean, temporal_spatial_variance, config)
+    def visualize(self):
+        """Generates the diagnostic plot."""
+        if self.means is None:
+            print("Error: No analysis results to visualize.")
+            return
 
-    #Output the data to netcdf
-    print("Saving the computed statistics to netcdf")
-    output_data_to_netcdf(config['OUTPUT_FILE'], temporal_spatial_mean, temporal_spatial_variance)
+        print("Visualizing the data")
+        try:
+            plt.plot(self.means, label="Mean")
+            plt.plot(self.variances, label="Variance")
+            plt.legend()
+            plt.savefig(self.config['PLOT_FILE'])
+            plt.close()
+        except Exception as e:
+            print(f"Error during visualization: {e}")
 
-    return
+    def save_netcdf(self):
+        """Exports results to a NetCDF file."""
+        print("Saving the computed statistics to netcdf")
+        try:
+            file_out = nc.Dataset(self.config['OUTPUT_FILE'], 'w')
+            file_out.createDimension('t', self.means.shape[0])
+
+            var_v1 = file_out.createVariable('temporal_spatial_mean', 'f4', ('t',))
+            var_v1[:] = self.means
+
+            var_v2 = file_out.createVariable('temporal_spatial_variance', 'f4', ('t',))
+            var_v2[:] = self.variances
+
+            file_out.close()
+        except Exception as e:
+            print(f"Error while saving NetCDF: {e}")
 
 def get_args():
     """Defines and collects command line arguments."""
-    parser = argparse.ArgumentParser(
-        description="Process spatial statistics from netCDF4 data."
-    )
-    
-    # Input/Output paths
-    parser.add_argument('--INPUT_FILE', type=str, default='era_interim_monthly_197901_201512_upscaled_annual.nc', 
-                        help='Path to the input NetCDF file')
-    parser.add_argument('--OUTPUT_FILE', type=str, default='out.nc', 
-                        help='Name of the output NetCDF file')
-    parser.add_argument('--PLOT_FILE', type=str, default='plot.png', 
-                        help='Name of the output diagnostic plot')
-    parser.add_argument('--VAR_NAME', type=str, default='t2m', 
-                        help='The variable name to extract from the NetCDF')
-    
-    # Bounding Box Arguments
+    parser = argparse.ArgumentParser(description="Process spatial statistics from netCDF4 data.")
+    parser.add_argument('--INPUT_FILE', type=str, default='era_interim_monthly_197901_201512_upscaled_annual.nc')
+    parser.add_argument('--OUTPUT_FILE', type=str, default='out.nc')
+    parser.add_argument('--PLOT_FILE', type=str, default='plot.png')
+    parser.add_argument('--VAR_NAME', type=str, default='t2m')
     parser.add_argument('--LAT_MIN', type=int, default=5)
     parser.add_argument('--LAT_MAX', type=int, default=50)
     parser.add_argument('--LON_MIN', type=int, default=10)
     parser.add_argument('--LON_MAX', type=int, default=100)
     parser.add_argument('--TIME_MIN', type=int, default=0)
     parser.add_argument('--TIME_MAX', type=int, default=10)
-
-    # Optional JSON config file path
     parser.add_argument('--JSON_FILE', type=str, default=None)
-    
     return parser.parse_args()
+
+def main():
+    # 1. Setup Configuration
+    config = vars(get_args())
+    if config.get('JSON_FILE'):
+        try:
+            with open(config['JSON_FILE'], 'r') as f:
+                config.update(json.load(f))
+        except Exception as e:
+            print(f"Error loading JSON config: {e}")
+            sys.exit(1)
+
+    # 2. OOP Execution
+    # Create the object (this loads the data)
+    analyzer = SpatialAnalyzer(config)
+    
+    # Run the methods
+    analyzer.run_analysis()
+    analyzer.visualize()
+    analyzer.save_netcdf()
+
+    return
 
 if __name__ == "__main__":
     main()
