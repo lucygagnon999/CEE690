@@ -12,68 +12,41 @@ import sys
 matplotlib.use('Agg') # Force Matplotlib to not use any X-Windows backend
 import matplotlib.pyplot as plt
 
-
 def calculate_spatial_mean(data, config):
+    """
+    Computes spatial mean using NumPy slicing (Vectorization).
+    """
+    # 1. Define the time range
+    t_start, t_end = config['TIME_MIN'], config['TIME_MAX']
+    
+    # 2. Extract the 3D 'cube' of interest all at once
+    # Syntax: data[time_slice, lat_slice, lon_slice]
+    subset = data[t_start:t_end, 
+                  config['LAT_MIN']:config['LAT_MAX'], 
+                  config['LON_MIN']:config['LON_MAX']]
 
-    # Define the final variable as a list
-    temporal_spatial_mean = []
+    # 3. Collapse the spatial dimensions (axis 1 and 2)
+    # This calculates the mean across Lat and Lon for every time step
+    temporal_spatial_mean = np.mean(subset, axis=(1, 2))
 
-    # Validate indices against data shape
-    if config['TIME_MAX'] > data.shape[0] or config['LAT_MAX'] > data.shape[1] or config['LON_MAX'] > data.shape[2]:
-        print("Error: Configuration indices are out of data bounds.")
-        sys.exit(1)
-
-    # Calculate temporally varying spatial mean
-    for t in range(data.shape[0]): 
-        if ((t < config['TIME_MIN']) | (t >= config['TIME_MAX'])):
-            continue
-        
-        pixel_count = 0
-        total_data = 0
-
-        for y in range(data.shape[1]):
-            if ((y < config['LAT_MIN']) | (y >= config['LAT_MAX'])):
-                continue
-
-            for x in range(data.shape[2]):
-                if ((x < config['LON_MIN']) | (x >= config['LON_MAX'])):
-                    continue
-                
-                pixel_count = pixel_count + 1
-                total_data = total_data + data[t][y][x]
-
-        temporal_spatial_mean.append(total_data / pixel_count)
-
-    return np.array(temporal_spatial_mean)
+    return temporal_spatial_mean
 
 def calculate_spatial_variance(data, config, temporal_spatial_mean):
+    """
+    Computes spatial variance using NumPy broadcasting.
+    """
+    t_start, t_end = config['TIME_MIN'], config['TIME_MAX']
+    
+    subset = data[t_start:t_end, 
+                  config['LAT_MIN']:config['LAT_MAX'], 
+                  config['LON_MIN']:config['LON_MAX']]
 
-    # Define the final variable as a list
-    temporal_spatial_variance = []
+    # NumPy 'Broadcasting' automatically aligns the mean with the subset
+    # for a mathematical subtraction without a single loop.
+    # We calculate the variance across the spatial axes (1 and 2)
+    temporal_spatial_variance = np.var(subset, axis=(1, 2))
 
-    # Calculate temporally varying spatial mean
-    for t in range(data.shape[0]): 
-        if ((t < config['TIME_MIN']) | (t >= config['TIME_MAX'])):
-            continue
-        
-        pixel_count = 0
-        diff_squared_sum = 0
-
-        for y in range(data.shape[1]):
-            if ((y < config['LAT_MIN']) | (y >= config['LAT_MAX'])):
-                continue
-
-            for x in range(data.shape[2]):
-                if ((x < config['LON_MIN']) | (x >= config['LON_MAX'])):
-                    continue
-                
-                pixel_count = pixel_count + 1
-                diff =  data[t][y][x] - temporal_spatial_mean[t - config['TIME_MIN']]
-                diff_squared_sum = diff_squared_sum + (diff)
-
-        temporal_spatial_variance.append(diff_squared_sum / pixel_count)
-
-    return np.array(temporal_spatial_variance)
+    return temporal_spatial_variance
 
 def load_dataset(config):
 
