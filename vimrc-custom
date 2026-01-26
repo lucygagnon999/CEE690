@@ -1,0 +1,42 @@
+"vimrc-custom for CEE690
+"author: Lucy Gagnon
+"
+"This vimrc is created for HW1 to have five unique features.
+"Comments for each feature are added below.
+"
+"
+" feature 1: show absolute and relative line numbers
+" absolute line numbers help wit err messages and 
+" relatige numbers make navigation faster.
+set number 
+set relativenumber
+
+" feature 2: use spaces instead of tabs
+" this matches the PEP-8 style guide
+set expandtab
+set shiftwidth=4
+set softtabstop=4
+set autoindent
+
+"feature 3: enable syntax highlighting
+"this feature improves readability for code
+syntax on
+
+"feature 4: highlight the current cursor line and matching brackets
+"this makes it easier to track postion in the file
+set cursorline
+set showmatch
+
+"feature 5: dispaly a status line with file info
+"this feature shows filename, modification status, and cursor psoition
+set laststatus=2
+set statusline=%f\ %h%m%r\ [%l,%c]\ %P
+
+
+"feature 6: convenience key mapping
+"this feature lets me save file wiht Ctrl-S and works in both normal and
+"insert modes
+nnoremap <C-s> :w<CR>
+inoremap <C-s> <Esc>:w<CR>a
+
+"end of vimrc-custom
