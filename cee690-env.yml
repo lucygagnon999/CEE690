@@ -1,0 +1,4 @@
+name: cee690
+channels:
+  - defaults
+prefix: /hpc/home/lgg22/miniconda3/envs/cee690
