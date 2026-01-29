@@ -1,0 +1,43 @@
+# bashrc custom for CEE690
+# author: Lucy Gagnon
+#
+# this file includes 5 features for my custom bashrc
+# comments for each feature are included below.
+
+#feature 1: custom prompt with username, host, and current directory
+# this feature makses it easier to know where I am on the DCC
+export PS1="\u@\h:\w\$ "
+
+# feature 2: useful aliases for common commands
+alias ll='ls -lah'	 # long listing with sizes and hidden files
+alias gs='git status'	 # quick git status
+alias gp='git pull'	 # #quick git pull
+alias v='vi'	 #shorter editor command
+
+# feature 3:fucntion to quickly create and enetr a directoyr
+#usage example: mcd dirname
+mcd () {
+	mkdir -p "$1" && cd "$1"
+}
+
+#feature 4: helper functions to actiavte/deactivate the CEE690 conda env 
+# saves typing long conda commands
+cee690-on () {
+	conda activate cee690
+}
+cee690-off () {
+	conda deactivate
+}
+
+#feature 5: improves shell history behavior
+# this feature prevents duplicate entires and increases history size
+export HISTCONTROL=ignoredups
+export HISTSIZE=10000
+export HISTFILESIZE=20000
+
+
+#feature 6: this feature enables a colored output for ls
+export LS_OPTIONS='--color=auto'
+eval "$(dircolors)"
+
+#end of bashrc-custom
